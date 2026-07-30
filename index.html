@@ -69,7 +69,7 @@
 
   <!-- Gemini Key Input -->
   <div class="key-bar" id="keyBar">
-    <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste Gemini API Key (AIzaSy...)" />
+    <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste Gemini API Key (AQ...)" />
     <button class="save-btn" onclick="saveKey()">Save Key</button>
   </div>
 
@@ -88,7 +88,6 @@
     let isListening = false;
     let recognition = null;
     
-    // Conversation History formatted for Gemini API
     let conversationHistory = [];
 
     const systemPrompt = "You are a warm, playful, and encouraging French tutor for a 4-year-old girl. Speak in short, simple 1-sentence responses. Teach her French words, numbers, and phrases in a fun tone. Always ask her to repeat a simple word back to you to keep the conversation flowing!";
@@ -99,13 +98,13 @@
 
     function saveKey() {
       const input = document.getElementById('apiKeyInput').value.trim();
-      if (input.startsWith('AIzaSy')) {
+      if (input.length > 10) { // Accepts both AQ... and AIza... formats
         apiKey = input;
         localStorage.setItem('gemini_key', input);
         document.getElementById('keyBar').style.display = 'none';
         alert('Gemini Key saved! Tap the mic to begin.');
       } else {
-        alert('Please enter a valid Gemini API key starting with AIzaSy');
+        alert('Please paste a valid Gemini API key!');
       }
     }
 
@@ -152,7 +151,6 @@
       btn.innerText = '⚙️';
       document.getElementById('statusText').innerText = "Gemini is thinking...";
 
-      // Append user's turn
       conversationHistory.push({
         role: "user",
         parts: [{ text: userText }]
@@ -175,7 +173,6 @@
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           const aiReply = data.candidates[0].content.parts[0].text.trim();
 
-          // Save assistant response to history
           conversationHistory.push({
             role: "model",
             parts: [{ text: aiReply }]
@@ -203,7 +200,6 @@
       utterance.pitch = 1.1;
 
       utterance.onend = () => {
-        // Continuous Voice Loop: Automatically turn mic back on after Gemini speaks!
         document.getElementById('micBtn').className = 'mic-button';
         document.getElementById('micBtn').innerText = '🎤';
         setTimeout(() => {
