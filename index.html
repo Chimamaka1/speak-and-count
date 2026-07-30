@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Speak & Count!</title>
   
-  <!-- Web App Metadata for iOS/Android Home Screen -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Speak & Count">
@@ -20,7 +19,7 @@
 
     body {
       margin: 0;
-      padding: 20px;
+      padding: 15px;
       font-family: 'Comic Sans MS', 'Chalkboard SE', 'Fredoka', sans-serif;
       background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%);
       min-height: 100vh;
@@ -34,13 +33,13 @@
     h1 {
       color: #fff;
       text-shadow: 2px 3px 0px #ff4757;
-      font-size: 2.2rem;
-      margin: 10px 0 0 0;
+      font-size: 2rem;
+      margin: 5px 0;
     }
 
     .mic-button {
-      width: 140px;
-      height: 140px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
       background: #ff4757;
       border: 6px solid #ffffff;
@@ -68,48 +67,50 @@
     }
 
     .status-text {
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       color: #2f3542;
       font-weight: bold;
-      min-height: 30px;
-      margin-top: 10px;
+      min-height: 28px;
+      margin: 8px 0;
+      text-align: center;
     }
 
     .display-card {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.92);
       border-radius: 24px;
-      padding: 20px;
+      padding: 15px;
       width: 100%;
       max-width: 500px;
       display: flex;
       flex-direction: column;
       align-items: center;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-      min-height: 280px;
+      flex-grow: 1;
+      max-height: 55vh;
     }
 
     .number-figure {
-      font-size: 7rem;
+      font-size: 6.5rem;
       line-height: 1;
       font-weight: 900;
       color: #3742fa;
       text-shadow: 4px 4px 0px #ffa502;
+      margin-bottom: 5px;
     }
 
     .items-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 6px;
       justify-content: center;
-      margin-top: 15px;
-      max-height: 150px;
-      overflow-y: auto;
+      align-content: flex-start;
       width: 100%;
+      overflow-y: auto;
+      padding: 10px;
     }
 
     .item-icon {
-      font-size: 2.2rem;
-      animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     @keyframes pop {
@@ -117,7 +118,7 @@
       100% { transform: scale(1); }
     }
 
-    /* Fallback Quick-Tap Row */
+    /* Fallback Quick Buttons */
     .quick-bar {
       display: flex;
       gap: 8px;
@@ -129,12 +130,12 @@
 
     .num-btn {
       flex: 1;
-      min-width: 45px;
+      min-width: 50px;
       height: 45px;
       background: #ffffff;
       border: 2px solid #70a1ff;
       border-radius: 12px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: bold;
       color: #3742fa;
       cursor: pointer;
@@ -151,38 +152,62 @@
   <h1>Speak & Count! 🎙️</h1>
 
   <button class="mic-button" id="micBtn" onclick="toggleListening()">🎤</button>
-  <div class="status-text" id="statusText">Tap the mic and say a number!</div>
+  <div class="status-text" id="statusText">Tap the mic and say a number! (1 - 100)</div>
 
   <div class="display-card">
-    <div class="number-figure" id="numberDisplay">5</div>
+    <div class="number-figure" id="numberDisplay">10</div>
     <div class="items-grid" id="itemsGrid"></div>
   </div>
 
-  <!-- Fallback row for manual tapping -->
   <div class="quick-bar">
-    <button class="num-btn" onclick="setNumber(1)">1</button>
-    <button class="num-btn" onclick="setNumber(2)">2</button>
-    <button class="num-btn" onclick="setNumber(3)">3</button>
-    <button class="num-btn" onclick="setNumber(4)">4</button>
-    <button class="num-btn" onclick="setNumber(5)">5</button>
-    <button class="num-btn" onclick="setNumber(6)">6</button>
-    <button class="num-btn" onclick="setNumber(7)">7</button>
-    <button class="num-btn" onclick="setNumber(8)">8</button>
-    <button class="num-btn" onclick="setNumber(9)">9</button>
     <button class="num-btn" onclick="setNumber(10)">10</button>
+    <button class="num-btn" onclick="setNumber(25)">25</button>
+    <button class="num-btn" onclick="setNumber(50)">50</button>
+    <button class="num-btn" onclick="setNumber(75)">75</button>
+    <button class="num-btn" onclick="setNumber(100)">100</button>
   </div>
 
   <script>
-    let currentNumber = 5;
+    let currentNumber = 10;
     let isListening = false;
     let recognition = null;
 
-    // Map common words to digits
-    const wordToNumber = {
-      'zero': 0, 'one': 1, 'two': 2, 'to': 2, 'too': 2, 'three': 3,
-      'four': 4, 'for': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8,
-      'ate': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12
+    // Advanced Word to Number Parser (supports 1 - 100)
+    const ones = {
+      'zero':0, 'one':1, 'two':2, 'to':2, 'too':2, 'three':3, 'four':4, 'for':4, 
+      'five':5, 'six':6, 'seven':7, 'eight':8, 'ate':8, 'nine':9, 'ten':10,
+      'eleven':11, 'twelve':12, 'thirteen':13, 'fourteen':14, 'fifteen':15,
+      'sixteen':16, 'seventeen':17, 'eighteen':18, 'nineteen':19
     };
+    const tens = {
+      'twenty':20, 'thirty':30, 'forty':40, 'fifty':50, 
+      'sixty':60, 'seventy':70, 'eighty':80, 'ninety':90, 'hundred':100
+    };
+
+    function parseSpokenText(text) {
+      // 1. Check direct digit match (e.g. "45")
+      const matches = text.match(/\d+/);
+      if (matches) return parseInt(matches[0]);
+
+      // 2. Parse word combinations (e.g. "twenty five" or "ninety nine")
+      const words = text.toLowerCase().replace(/-/g, ' ').split(' ');
+      let total = 0;
+      let temp = 0;
+
+      for (let word of words) {
+        if (ones[word] !== undefined) {
+          temp += ones[word];
+        } else if (tens[word] !== undefined) {
+          if (word === 'hundred') {
+            temp = (temp || 1) * 100;
+          } else {
+            temp += tens[word];
+          }
+        }
+      }
+      total += temp;
+      return total > 0 ? total : null;
+    }
 
     // Setup Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -208,23 +233,13 @@
         const transcript = event.results[0][0].transcript.toLowerCase().trim();
         document.getElementById('statusText').innerText = `You said: "${transcript}"`;
         
-        let foundNum = parseInt(transcript);
+        const foundNum = parseSpokenText(transcript);
 
-        if (isNaN(foundNum)) {
-          // Check word dictionary
-          const words = transcript.split(' ');
-          for (let word of words) {
-            if (wordToNumber[word] !== undefined) {
-              foundNum = wordToNumber[word];
-              break;
-            }
-          }
-        }
-
-        if (!isNaN(foundNum) && foundNum >= 0 && foundNum <= 50) {
+        if (foundNum !== null && foundNum >= 1 && foundNum <= 100) {
           setNumber(foundNum);
-        } else if (!isNaN(foundNum) && foundNum > 50) {
-          document.getElementById('statusText').innerText = "Try a smaller number! (1-50)";
+        } else if (foundNum > 100) {
+          document.getElementById('statusText').innerText = "Try a number up to 100!";
+          speak("Try a smaller number up to 100!");
         } else {
           speak("I didn't catch a number. Try again!");
         }
@@ -255,12 +270,15 @@
       const icons = ['⭐', '🎈', '🍎', '🐱', '🚀'];
       const chosenIcon = icons[count % icons.length];
 
-      // Cap displayed icons at 50 so it doesn't freeze the screen
-      const displayCount = Math.min(count, 50);
+      // Dynamically size icons based on count so 100 fit nicely!
+      let fontSize = '2rem';
+      if (count > 50) fontSize = '1.2rem';
+      else if (count > 20) fontSize = '1.5rem';
 
-      for (let i = 0; i < displayCount; i++) {
+      for (let i = 0; i < count; i++) {
         const span = document.createElement('span');
         span.className = 'item-icon';
+        span.style.fontSize = fontSize;
         span.innerText = chosenIcon;
         grid.appendChild(span);
       }
@@ -268,16 +286,16 @@
 
     function speak(text) {
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Stop prior audio
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.pitch = 1.2; // Slightly higher/friendly pitch for kids
+        utterance.pitch = 1.2;
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
       }
     }
 
     // Initial render
-    renderStars(5);
+    renderStars(10);
   </script>
 </body>
 </html>
