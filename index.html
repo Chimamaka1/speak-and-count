@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>French Learning Companion</title>
+  <title>French Voice Friend (Gemini)</title>
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,23 +22,31 @@
 
     h1 { margin: 5px 0; font-size: 1.8rem; text-shadow: 2px 2px 0 #000; }
 
-    /* Conversation Bubble Display */
+    /* API Key Box */
+    .key-bar {
+      width: 100%; max-width: 500px; display: flex; gap: 8px; margin-bottom: 8px;
+    }
+    .key-input {
+      flex: 1; padding: 10px 12px; border-radius: 12px; border: none; font-size: 0.9rem;
+    }
+    .save-btn {
+      background: #2ecc71; color: white; border: none; padding: 10px 15px;
+      border-radius: 12px; font-weight: bold; cursor: pointer;
+    }
+
+    /* Main Display Card */
     .card {
       background: rgba(255, 255, 255, 0.95); color: #2c3e50;
       border-radius: 24px; padding: 20px; width: 100%; max-width: 500px;
       display: flex; flex-direction: column; align-items: center;
       text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-      min-height: 280px; justify-content: center; margin: 10px 0;
+      min-height: 280px; justify-content: center; margin: 10px 0; flex-grow: 1;
     }
 
-    .main-word { font-size: 3.5rem; font-weight: 900; color: #e74c3c; line-height: 1.1; }
-    .translation { font-size: 2rem; color: #2980b9; margin-top: 8px; font-weight: bold; }
-    .ai-response { font-size: 1.2rem; color: #27ae60; margin-top: 15px; font-style: italic; }
-    .big-emoji { font-size: 5rem; margin: 10px 0; animation: pop 0.3s ease; }
+    .ai-text { font-size: 1.5rem; font-weight: bold; color: #2980b9; line-height: 1.3; }
+    .user-said { font-size: 1.1rem; color: #7f8c8d; margin-top: 15px; font-style: italic; }
 
-    @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-
-    /* Controls */
+    /* Mic Controls */
     .mic-container { display: flex; flex-direction: column; align-items: center; margin: 10px 0; }
     .mic-button {
       width: 110px; height: 110px; border-radius: 50%; background: #e74c3c;
@@ -47,157 +55,178 @@
       justify-content: center; cursor: pointer; outline: none; transition: 0.2s;
     }
     .mic-button.listening { background: #2ecc71; animation: pulse 1.2s infinite; }
+    .mic-button.thinking { background: #f39c12; animation: spin 1s infinite linear; }
+
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     .status { margin-top: 8px; font-size: 1.1rem; font-weight: bold; text-shadow: 1px 1px 0 #000; }
-    .auto-mode-toggle {
-      background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px;
-      display: flex; gap: 10px; align-items: center; margin-bottom: 5px; cursor: pointer;
-    }
   </style>
 </head>
 <body>
 
-  <h1>French Talk & Learn 🇫🇷</h1>
+  <h1>French Voice Friend 🇫🇷</h1>
 
-  <div class="auto-mode-toggle" onclick="toggleAutoMode()">
-    <input type="checkbox" id="autoCheck" checked style="transform: scale(1.3);">
-    <label for="autoCheck" style="cursor:pointer; font-weight:bold;">Continuous Chat Mode</label>
+  <!-- Gemini Key Input -->
+  <div class="key-bar" id="keyBar">
+    <input type="password" id="apiKeyInput" class="key-input" placeholder="Paste Gemini API Key (AIzaSy...)" />
+    <button class="save-btn" onclick="saveKey()">Save Key</button>
   </div>
 
   <div class="card">
-    <div class="big-emoji" id="emoji">👋</div>
-    <div class="main-word" id="mainWord">Bonjour!</div>
-    <div class="translation" id="subWord">Hello!</div>
-    <div class="ai-response" id="aiResponse">Tap the mic to start talking to me!</div>
+    <div class="ai-text" id="aiText">Bonjour! Tap the mic to start talking to me! 🎈</div>
+    <div class="user-said" id="userSaid">I am ready to learn French!</div>
   </div>
 
   <div class="mic-container">
     <button class="mic-button" id="micBtn" onclick="toggleMic()">🎤</button>
-    <div class="status" id="statusText">Tap to speak</div>
+    <div class="status" id="statusText">Tap to start talking</div>
   </div>
 
   <script>
+    let apiKey = localStorage.getItem('gemini_key') || '';
     let isListening = false;
-    let autoMode = true;
     let recognition = null;
+    
+    // Conversation History formatted for Gemini API
+    let conversationHistory = [];
 
-    // Expanded Dictionary: Hundreds of mapped words & emojis
-    const dict = {
-      // Animals
-      'cat':'🐱|Chat', 'dog':'🐶|Chien', 'rabbit':'🐰|Lapin', 'lion':'🦁|Lion', 'elephant':'🐘|Éléphant',
-      'monkey':'🐒|Singe', 'bear':'🐻|Ours', 'duck':'🦆|Canard', 'bird':'🐦|Oiseau', 'fish':'🐟|Poisson',
-      'horse':'🐴|Cheval', 'pig':'🐷|Cochon', 'cow':'🐮|Vache', 'frog':'🐸|Grenouille',
-      
-      // Colors
-      'red':'🔴|Rouge', 'blue':'🔵|Bleu', 'green':'🟢|Vert', 'yellow':'🟡|Jaune', 
-      'pink':'🩷|Rose', 'purple':'🟣|Violet', 'orange':'🟠|Orange', 'black':'⬛|Noir', 'white':'⬜|Blanc',
-      
-      // Food & Fruits
-      'apple':'🍎|Pomme', 'banana':'🍌|Banane', 'water':'💧|Eau', 'milk':'🥛|Lait', 
-      'bread':'🍞|Pain', 'cheese':'🧀|Fromage', 'cake':'🎂|Gâteau', 'cookie':'🍪|Biscuit',
-      
-      // Basics & Greetings
-      'hello':'👋|Bonjour', 'goodbye':'👋|Au revoir', 'yes':'✅|Oui', 'no':'❌|Non',
-      'please':'🙏|S\'il vous plaît', 'thank you':'🥰|Merci', 'friend':'🤝|Ami',
-      'sun':'☀️|Soleil', 'star':'⭐|Étoile', 'moon':'🌙|Lune', 'house':'🏠|Maison', 'car':'🚗|Voiture'
-    };
+    const systemPrompt = "You are a warm, playful, and encouraging French tutor for a 4-year-old girl. Speak in short, simple 1-sentence responses. Teach her French words, numbers, and phrases in a fun tone. Always ask her to repeat a simple word back to you to keep the conversation flowing!";
 
-    const frNumbers = {
-      1:'Un', 2:'Deux', 3:'Trois', 4:'Quatre', 5:'Cinq', 6:'Six', 7:'Sept', 8:'Huit', 9:'Neuf', 10:'Dix',
-      11:'Onze', 12:'Douze', 13:'Treize', 14:'Quatorze', 15:'Quinze', 16:'Seize', 17:'Dix-sept', 18:'Dix-huit', 19:'Dix-neuf', 20:'Vingt',
-      30:'Trente', 40:'Quarante', 50:'Cinquante', 60:'Soixante', 70:'Soixante-dix', 80:'Quatre-vingts', 90:'Quatre-vingt-dix', 100:'Cent'
-    };
+    if (apiKey) {
+      document.getElementById('keyBar').style.display = 'none';
+    }
+
+    function saveKey() {
+      const input = document.getElementById('apiKeyInput').value.trim();
+      if (input.startsWith('AIzaSy')) {
+        apiKey = input;
+        localStorage.setItem('gemini_key', input);
+        document.getElementById('keyBar').style.display = 'none';
+        alert('Gemini Key saved! Tap the mic to begin.');
+      } else {
+        alert('Please enter a valid Gemini API key starting with AIzaSy');
+      }
+    }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     function initSpeech() {
-      if (!SpeechRecognition) return;
+      if (!SpeechRecognition) {
+        alert("Speech recognition is not supported on this browser.");
+        return;
+      }
+
       recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
+      recognition.lang = 'en-US';
 
       recognition.onstart = () => {
         isListening = true;
-        document.getElementById('micBtn').classList.add('listening');
-        document.getElementById('statusText').innerText = "Listening...";
+        const btn = document.getElementById('micBtn');
+        btn.className = 'mic-button listening';
+        btn.innerText = '🎙️';
+        document.getElementById('statusText').innerText = "Listening to you...";
       };
 
       recognition.onend = () => {
         isListening = false;
-        document.getElementById('micBtn').classList.remove('listening');
       };
 
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript.toLowerCase().trim();
-        handleSpeechInput(text);
+        const userText = event.results[0][0].transcript;
+        document.getElementById('userSaid').innerText = `You said: "${userText}"`;
+        sendToGemini(userText);
       };
     }
 
-    function handleSpeechInput(text) {
-      document.getElementById('statusText').innerText = `You said: "${text}"`;
-
-      // 1. Check for Numbers (1 to 1000+)
-      const numMatch = text.match(/\d+/);
-      if (numMatch) {
-        const num = parseInt(numMatch[0]);
-        const frNum = frNumbers[num] || `Nombre ${num}`;
-        updateUI('🔢', num, `🇫🇷 ${frNum}`, `In French, ${num} is ${frNum}!`);
-        speakResponse(`In French, ${num} is ${frNum}`, 'fr-FR', frNum);
+    async function sendToGemini(userText) {
+      if (!apiKey) {
+        alert("Please enter your Gemini API Key at the top first!");
         return;
       }
 
-      // 2. Check Dictionary Words
-      let foundKey = Object.keys(dict).find(key => text.includes(key));
-      if (foundKey) {
-        const [emoji, frWord] = dict[foundKey].split('|');
-        updateUI(emoji, foundKey.toUpperCase(), `🇫🇷 ${frWord}`, `Great! ${foundKey} in French is ${frWord}!`);
-        speakResponse(`${foundKey} in French is ${frWord}. Can you say ${frWord}?`, 'fr-FR', frWord);
-        return;
+      const btn = document.getElementById('micBtn');
+      btn.className = 'mic-button thinking';
+      btn.innerText = '⚙️';
+      document.getElementById('statusText').innerText = "Gemini is thinking...";
+
+      // Append user's turn
+      conversationHistory.push({
+        role: "user",
+        parts: [{ text: userText }]
+      });
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: conversationHistory
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          const aiReply = data.candidates[0].content.parts[0].text.trim();
+
+          // Save assistant response to history
+          conversationHistory.push({
+            role: "model",
+            parts: [{ text: aiReply }]
+          });
+
+          document.getElementById('aiText').innerText = aiReply;
+          speakReply(aiReply);
+        } else {
+          throw new Error("Invalid response from Gemini API");
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById('statusText').innerText = "Error connecting to Gemini API.";
+        btn.className = 'mic-button';
+        btn.innerText = '🎤';
       }
-
-      // 3. Conversational AI fallback for any other word she says
-      updateUI('💬', text.toUpperCase(), '✨ Learning Mode', `Let's practice "${text}"!`);
-      speakResponse(`That's a great word! Let's practice saying ${text}!`, 'en-US');
     }
 
-    function updateUI(emoji, main, sub, aiMsg) {
-      document.getElementById('emoji').innerText = emoji;
-      document.getElementById('mainWord').innerText = main;
-      document.getElementById('subWord').innerText = sub;
-      document.getElementById('aiResponse').innerText = aiMsg;
-    }
-
-    function speakResponse(textToSay, frenchLangCode, frenchWordOnly) {
+    function speakReply(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
 
-      const englishPhrase = new SpeechSynthesisUtterance(textToSay);
-      englishPhrase.rate = 0.9;
-      englishPhrase.pitch = 1.1;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.88; 
+      utterance.pitch = 1.1;
 
-      englishPhrase.onend = () => {
-        // Automatically re-open microphone if continuous chat is checked!
-        if (document.getElementById('autoCheck').checked) {
-          setTimeout(() => { if (!isListening) recognition.start(); }, 800);
-        }
+      utterance.onend = () => {
+        // Continuous Voice Loop: Automatically turn mic back on after Gemini speaks!
+        document.getElementById('micBtn').className = 'mic-button';
+        document.getElementById('micBtn').innerText = '🎤';
+        setTimeout(() => {
+          if (recognition && !isListening) {
+            recognition.start();
+          }
+        }, 600);
       };
 
-      window.speechSynthesis.speak(englishPhrase);
+      window.speechSynthesis.speak(utterance);
     }
 
     function toggleMic() {
       if (!recognition) initSpeech();
       if (!recognition) return;
+
       if (isListening) {
         recognition.stop();
+        document.getElementById('micBtn').className = 'mic-button';
+        document.getElementById('micBtn').innerText = '🎤';
       } else {
         recognition.start();
       }
-    }
-
-    function toggleAutoMode() {
-      autoMode = document.getElementById('autoCheck').checked;
     }
 
     initSpeech();
